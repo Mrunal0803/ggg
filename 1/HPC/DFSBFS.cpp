@@ -1,0 +1,79 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <omp.h>
+
+void parallel_bfs(int start, const std::vector<std::vector<int>>& adj_list, std::vector<bool>& visited)
+{
+    std::queue<int> q;
+    q.push(start);
+    visited[start] = true;
+
+    while (!q.empty()) {
+        int curr = q.front();
+        q.pop();
+
+        #pragma omp parallel for shared(adj_list, visited, q)
+        for (int neighbor : adj_list[curr]) {
+            if (!visited[neighbor]) {
+                #pragma omp critical
+                {
+                    visited[neighbor] = true;
+                    q.push(neighbor);
+                }
+            }
+        }
+    }
+}
+
+void parallel_dfs(int curr, const std::vector<std::vector<int>>& adj_list, std::vector<bool>& visited)
+{
+    visited[curr] = true;
+
+    #pragma omp parallel for shared(adj_list, visited)
+    for (int neighbor : adj_list[curr]) {
+        if (!visited[neighbor]) {
+            #pragma omp critical
+            parallel_dfs(neighbor, adj_list, visited);
+        }
+    }
+}
+
+int main() {
+    int n, m;
+    std::cout << "Enter the number of vertices and edges: ";
+    std::cin >> n >> m;
+
+    std::vector<std::vector<int>> adj_list(n);
+    std::vector<bool> visited(n, false);
+
+    std::cout << "Enter edges:" << std::endl;
+    for (int i = 0; i < m; i++) {
+        int a, b;
+        std::cin >> a >> b;
+        adj_list[a].push_back(b);
+        adj_list[b].push_back(a);
+    }
+
+    std::cout << "BFS: ";
+    for (int i = 0; i < n; i++) {
+        if (!visited[i]) {
+            parallel_bfs(i, adj_list, visited);
+        }
+        std::cout << i << " ";
+    }
+    std::cout << std::endl;
+
+    visited.assign(n, false);
+
+    std::cout << "DFS: ";
+    for (int i = 0; i < n; i++) {
+        if (!visited[i]) {
+            parallel_dfs(i, adj_list, visited);
+        }
+        std::cout << i << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
+}

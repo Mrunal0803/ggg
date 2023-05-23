@@ -1,0 +1,72 @@
+The code you provided performs parallel reductions to find the minimum, maximum, sum, and average of a given set of values using OpenMP.
+ Let's go through the code and explain its functionality.
+
+cpp
+Copy code
+template<typename T>
+T parallelMin(const std::vector<T>& data) {
+    T minVal = data[0];
+
+    #pragma omp parallel for reduction(min: minVal)
+    for (int i = 1; i < data.size(); ++i) {
+        if (data[i] < minVal) {
+            minVal = data[i];
+        }
+    }
+
+    return minVal;
+}
+The parallelMin function takes a vector data as input and finds the minimum value in parallel using OpenMP. 
+It initializes minVal with the first element of data and then uses the #pragma omp parallel for directive to parallelize the for loop. 
+The reduction(min: minVal) clause ensures that each thread has its own copy of minVal and performs a reduction operation to find the minimum value
+ among the partial results obtained by each thread. The minimum value is updated if a smaller value is found.
+
+cpp
+Copy code
+template<typename T>
+T parallelMax(const std::vector<T>& data) {
+    T maxVal = data[0];
+
+    #pragma omp parallel for reduction(max: maxVal)
+    for (int i = 1; i < data.size(); ++i) {
+        if (data[i] > maxVal) {
+            maxVal = data[i];
+        }
+    }
+
+    return maxVal;
+}
+The parallelMax function is similar to parallelMin but finds the maximum value. It initializes maxVal with the first element of data and uses the reduction(max: maxVal) 
+clause in the #pragma omp parallel for directive to perform a reduction operation to find the maximum value among the partial results obtained by each thread.
+
+cpp
+Copy code
+template<typename T>
+T parallelSum(const std::vector<T>& data) {
+    T sum = std::accumulate(data.begin(), data.end(), static_cast<T>(0));
+
+    #pragma omp parallel for reduction(+: sum)
+    for (int i = 0; i < data.size(); ++i) {
+        sum += data[i];
+    }
+
+    return sum;
+}
+The parallelSum function calculates the sum of the values in data using parallel reduction. 
+It first uses std::accumulate to calculate the initial sum of the values. Then, it uses the #pragma omp parallel for directive
+ with the reduction(+: sum) clause to parallelize the for loop and perform a reduction operation to calculate the sum of the values obtained by each thread.
+
+cpp
+Copy code
+template<typename T>
+double parallelAverage(const std::vector<T>& data) {
+    T sum = parallelSum(data);
+    return static_cast<double>(sum) / data.size();
+}
+The parallelAverage function uses the parallelSum function to calculate the sum of the values and then divides 
+it by the size of the data vector to find the average. The result is returned as a double type.
+
+In the main function, the code reads the number of values from the user and then reads the values into a vector. 
+It calls the parallel reduction functions to find the minimum, maximum, sum, and average of the values and prints the results to the console.
+
+Overall, the code efficiently performs parallel reductions to find statistical properties of a set of values using OpenMP.

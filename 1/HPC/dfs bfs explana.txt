@@ -1,0 +1,127 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <omp.h>
+These lines include the necessary header files for input/output (iostream), dynamic arrays (vector), queues (queue), and OpenMP directives (omp.h).
+
+cpp
+Copy code
+void parallel_bfs(int start, const std::vector<std::vector<int>>& adj_list, std::vector<bool>& visited)
+{
+    std::queue<int> q;
+    q.push(start);
+    visited[start] = true;
+
+    while (!q.empty()) {
+        int curr = q.front();
+        q.pop();
+
+        #pragma omp parallel for shared(adj_list, visited, q)
+        for (int neighbor : adj_list[curr]) {
+            if (!visited[neighbor]) {
+                #pragma omp critical
+                {
+                    visited[neighbor] = true;
+                    q.push(neighbor);
+                }
+            }
+        }
+    }
+}
+This function implements the parallel Breadth-First Search (BFS) algorithm. 
+It takes three parameters: start (the starting vertex), adj_list (the adjacency list representation of the graph), 
+and visited (a vector to keep track of visited vertices).
+
+Inside the function, a queue q is created to store the vertices to be processed. 
+The starting vertex is pushed onto the queue, and its visited status is set to true.
+
+The while loop continues until the queue is empty. In each iteration, the front element curr is dequeued from the queue.
+ Then, a parallel loop is used (#pragma omp parallel for) to iterate over the neighbors of the current vertex curr in the adjacency list. 
+This loop distributes the iterations among multiple threads to process neighbors in parallel.
+
+For each neighbor, if it has not been visited yet, a critical section (#pragma omp critical) is used to ensure mutual e
+xclusion when updating the visited status and pushing it onto the queue. This critical section prevents race conditions that may occur
+ when multiple threads try to modify the same shared variables (visited and q) concurrently.
+
+cpp
+Copy code
+void parallel_dfs(int curr, const std::vector<std::vector<int>>& adj_list, std::vector<bool>& visited)
+{
+    visited[curr] = true;
+
+    #pragma omp parallel for shared(adj_list, visited)
+    for (int neighbor : adj_list[curr]) {
+        if (!visited[neighbor]) {
+            #pragma omp critical
+            parallel_dfs(neighbor, adj_list, visited);
+        }
+    }
+}
+This function implements the parallel Depth-First Search (DFS) algorithm. It takes three parameters: curr (the current vertex),
+ adj_list (the adjacency list representation of the graph), and visited (a vector to keep track of visited vertices).
+
+First, the visited status of the current vertex is set to true. Then, a parallel loop is used to iterate over the neighbors of 
+the current vertex. This loop distributes the iterations among multiple threads to explore neighbors in parallel.
+
+If a neighbor has not been visited yet, a critical section is used to invoke the parallel_dfs function recursively for that neighbor. 
+This ensures that the DFS exploration is performed by multiple threads in parallel.
+
+cpp
+Copy code
+int main() {
+    int n, m;
+    std::cout << "Enter the number of vertices and edges: ";
+    std::cin >> n >> m;
+
+    std::vector<std::vector<int>> adj_list(n);
+    std::vector<bool> visited(n, false);
+
+    std::cout << "Enter edges:" << std::endl;
+    for (int i = 0; i < m; i++) {
+        int a, b;
+        std::cin >> a >> b;
+        adj_list[a].push_back(b);
+        adj_list[b].push_back(a);
+    }
+The main function is the entry point of the program. It first prompts the user to enter the number of vertices (n) and edges (m) of the graph.
+
+Then, it initializes the adjacency list adj_list as a vector of vectors with size n. It also creates a visited vector visited of size n 
+and initializes all elements to false.
+
+Next, the user is prompted to enter the edges of the graph. In a loop, the user inputs two vertices a and b representing an edge. 
+The code then adds the edge to the adjacency list by pushing b into the vector at index a and pushing a into the vector at index b. 
+This ensures that the graph is undirected, and each edge is represented in both directions.
+
+cpp
+Copy code
+    std::cout << "BFS: ";
+    for (int i = 0; i < n; i++) {
+        if (!visited[i]) {
+            parallel_bfs(i, adj_list, visited);
+        }
+        std::cout << i << " ";
+    }
+    std::cout << std::endl;
+
+    visited.assign(n, false);
+
+    std::cout << "DFS: ";
+    for (int i = 0; i < n; i++) {
+        if (!visited[i]) {
+            parallel_dfs(i, adj_list, visited);
+        }
+        std::cout << i << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
+}
+After constructing the graph, the BFS algorithm is performed. The code iterates over all vertices, and if a vertex has not been visited, 
+it calls the parallel_bfs function to perform BFS starting from that vertex. The BFS traversal order is printed.
+
+Then, the visited vector is reset by assigning all elements to false again.
+
+Next, the DFS algorithm is performed in a similar manner. The code iterates over all vertices, and if a vertex has not been visited, 
+it calls the parallel_dfs function to perform DFS starting from that vertex. The DFS traversal order is printed.
+
+Finally, the main function returns 0 to indicate successful program execution.

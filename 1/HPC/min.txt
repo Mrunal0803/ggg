@@ -1,0 +1,93 @@
+Min max average sum
+
+
+
+
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+#include <omp.h>
+
+// Function for parallel reduction to find the minimum value
+template<typename T>
+T parallelMin(const std::vector<T>& data) {
+    T minVal = data[0];
+
+    #pragma omp parallel for reduction(min: minVal)
+    for (int i = 1; i < data.size(); ++i) {
+        if (data[i] < minVal) {
+            minVal = data[i];
+        }
+    }
+
+    return minVal;
+}
+
+// Function for parallel reduction to find the maximum value
+template<typename T>
+T parallelMax(const std::vector<T>& data) {
+    T maxVal = data[0];
+
+    #pragma omp parallel for reduction(max: maxVal)
+    for (int i = 1; i < data.size(); ++i) {
+        if (data[i] > maxVal) {
+            maxVal = data[i];
+        }
+    }
+
+    return maxVal;
+}
+
+// Function for parallel reduction to find the sum of values
+template<typename T>
+T parallelSum(const std::vector<T>& data) {
+    T sum = std::accumulate(data.begin(), data.end(), static_cast<T>(0));
+
+    #pragma omp parallel for reduction(+: sum)
+    for (int i = 0; i < data.size(); ++i) {
+        sum += data[i];
+    }
+
+    return sum;
+}
+
+// Function for parallel reduction to find the average of values
+template<typename T>
+double parallelAverage(const std::vector<T>& data) {
+    T sum = parallelSum(data);
+    return static_cast<double>(sum) / data.size();
+}
+
+int main() {
+    // Read the number of values from the user
+    int numValues;
+    std::cout << "Enter the number of values: ";
+    std::cin >> numValues;
+
+    // Read the values from the user
+    std::vector<int> numbers(numValues);
+    for (int i = 0; i < numValues; ++i) {
+        std::cout << "Enter value " << (i + 1) << ": ";
+        std::cin >> numbers[i];
+    }
+
+    // Minimum
+    int minVal = parallelMin(numbers);
+    std::cout << "Minimum value: " << minVal << std::endl;
+
+    // Maximum
+    int maxVal = parallelMax(numbers);
+    std::cout << "Maximum value: " << maxVal << std::endl;
+
+    // Sum
+    int sum = parallelSum(numbers);
+    std::cout << "Sum of values: " << sum << std::endl;
+
+    // Average
+    double average = parallelAverage(numbers);
+    std::cout << "Average value: " << average << std::endl;
+
+    return 0;
+}
